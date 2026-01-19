@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing text or targetLang' }, { status: 400 });
     }
 
-    const res = await translate(text, { to: targetLang, forceBatch: false, rejectOnPartialFail: false });
+    const res = await translate(text, { to: targetLang === 'zh' ? 'zh-CN' : targetLang, forceBatch: false, rejectOnPartialFail: false, forceTo: true });
     // @ts-ignore - we know response is not an array when input is a single string
     const translatedText = res.text;
     console.log(`Translated: "${text}" -> "${translatedText}" (${targetLang})`);
