@@ -308,7 +308,6 @@ export async function POST(req: Request) {
                 deadlineStr = nextDeadline.date.format('YYYY-MM-DD HH:mm:ss');
             }
 
-            contextText += `ID: ${conf.id}\n`;
             contextText += `Name: ${conf.title} (${conf.description})\n`;
             contextText += `Rank: CCF ${conf.rank?.ccf || 'N'}\n`;
             contextText += `Status: ${status} (${status === 'Active' ? '进行中' : '已截止'})\n`;
