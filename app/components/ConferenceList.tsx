@@ -420,18 +420,20 @@ export default function ConferenceList({ conferences }: { conferences: Conferenc
           </select>
         </div>
 
-        <div className="flex-1 min-w-[150px]">
-          <select 
-            className="border rounded px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 outline-none"
-            value={selectedRank}
-            onChange={(e) => setSelectedRank(e.target.value)}
-          >
-            <option value="All">{t('allRanks')}</option>
-            <option value="A">CCF A</option>
-            <option value="B">CCF B</option>
-            <option value="C">CCF C</option>
-            <option value="N">Non-CCF</option>
-          </select>
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200 h-[42px]">
+          {['All', 'A', 'B', 'C', 'N'].map((rank) => (
+            <button
+              key={rank}
+              onClick={() => setSelectedRank(rank)}
+              className={`px-3 h-full rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                selectedRank === rank
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+              }`}
+            >
+              {rank === 'All' ? t('allRanks') : rank === 'N' ? 'Non-CCF' : `CCF ${rank}`}
+            </button>
+          ))}
         </div>
 
         <div className="flex items-center gap-2">
