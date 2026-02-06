@@ -4,12 +4,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-data": "node scripts/generate-data.js"
+    "generate-data": "node scripts/generate-data.js",
+    "migrate-db": "node scripts/migrate-to-supabase.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "@tailwindcss/postcss": "^4.1.18",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.19",
+    "dotenv": "^17.2.4",
     "framer-motion": "^12.26.2",
     "glob": "^13.0.0",
     "google-translate-api-x": "^10.7.2",
