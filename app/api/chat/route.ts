@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-// Force update timestamp
-import fs from 'fs';
-import path from 'path';
 import { Conference } from '@/app/types';
+import { getConferencesFromDB } from '@/lib/supabase';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -10,60 +8,38 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// Helper to load data
+// Helper to load data from Supabase with caching
 let cachedConferences: Conference[] | null = null;
 let lastLoadedTime: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-let isWatching = false;
 
-function loadConferencesFromFile() {
-    try {
-        const filePath = path.join(process.cwd(), 'public', 'conferences.json');
-        const fileContents = fs.readFileSync(filePath, 'utf8');
-        cachedConferences = JSON.parse(fileContents);
-        lastLoadedTime = Date.now();
-        console.log(`[Data] Conferences loaded at ${new Date().toISOString()}`);
-        
-        // Setup Watcher only once
-        if (!isWatching) {
-            try {
-                // Use fs.watch for file system events
-                fs.watch(filePath, (eventType) => {
-                    if (eventType === 'change') {
-                        console.log('[Data] File changed, clearing cache...');
-                        cachedConferences = null; // Invalidate cache immediately
-                        lastLoadedTime = 0;
-                    }
-                });
-                isWatching = true;
-                console.log('[Data] File watcher initialized');
-            } catch (watchError) {
-                console.warn('[Data] Failed to setup file watcher (likely serverless environment), falling back to TTL', watchError);
-            }
-        }
-        
-        return cachedConferences || [];
-    } catch (error) {
-        console.error("Failed to load conferences:", error);
-        // If read fails, try to keep old cache if available
-        return cachedConferences || [];
-    }
-}
-
-function getConferences(): Conference[] {
+async function getConferences(): Promise<Conference[]> {
   const now = Date.now();
-  
+
   // 1. If no cache, load it
   if (!cachedConferences) {
-      return loadConferencesFromFile();
+    try {
+      cachedConferences = await getConferencesFromDB();
+      lastLoadedTime = now;
+      console.log(`[Data] Conferences loaded from Supabase at ${new Date().toISOString()}`);
+      return cachedConferences;
+    } catch (error) {
+      console.error("Failed to load conferences from Supabase:", error);
+      return [];
+    }
   }
-  
-  // 2. TTL Check (Backup for watcher failure)
+
+  // 2. TTL Check
   if (now - lastLoadedTime > CACHE_TTL) {
-      console.log('[Data] Cache expired (TTL), reloading...');
-      return loadConferencesFromFile();
+    console.log('[Data] Cache expired (TTL), reloading from Supabase...');
+    try {
+      cachedConferences = await getConferencesFromDB();
+      lastLoadedTime = now;
+    } catch (error) {
+      console.error("Failed to reload conferences, using stale cache:", error);
+    }
   }
-  
+
   return cachedConferences;
 }
 
@@ -278,12 +254,12 @@ ${contextData}
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
-    
+
     if (!message) {
       return NextResponse.json({ message: "请输入您的问题。" }, { status: 400 });
     }
 
-    const allConferences = getConferences();
+    const allConferences = await getConferences();
     const { results, conditions } = analyzeQuery(message, allConferences);
 
     // Limit results for chat display context
