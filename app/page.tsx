@@ -1,17 +1,14 @@
 import ConferenceList from './components/ConferenceList';
 import ChatWidget from './components/ChatWidget';
 import { Conference } from './types';
-import fs from 'fs';
-import path from 'path';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import { getConferencesFromDB } from '@/lib/supabase';
 
 async function getConferences() {
-  const filePath = path.join(process.cwd(), 'public', 'conferences.json');
   try {
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContents) as Conference[];
+    return await getConferencesFromDB() as Conference[];
   } catch (error) {
-    console.error('Error reading conferences file:', error);
+    console.error('Error fetching conferences from Supabase:', error);
     return [];
   }
 }
