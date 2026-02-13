@@ -83,16 +83,22 @@ export async function getConferencesFromDB() {
     throw error;
   }
 
+  // Debug: log first conference's rank data
+  if (conferences && conferences.length > 0) {
+    console.log('[DEBUG] First conference ranks data:', conferences[0].ranks);
+    console.log('[DEBUG] Sample conferences with ranks:', conferences.slice(0, 3).map(c => ({ title: c.title, ranks: c.ranks })));
+  }
+
   // Transform to match the original Conference type
   return conferences?.map(conf => ({
     id: conf.id,
     title: conf.title,
     description: conf.description,
     sub: conf.sub,
-    rank: conf.ranks?.[0] ? {
-      ccf: conf.ranks[0].ccf,
-      core: conf.ranks[0].core,
-      thcpl: conf.ranks[0].thcpl
+    rank: conf.ranks ? {
+      ccf: conf.ranks.ccf,
+      core: conf.ranks.core,
+      thcpl: conf.ranks.thcpl
     } : undefined,
     confs: conf.conference_instances?.map(instance => ({
       year: instance.year,

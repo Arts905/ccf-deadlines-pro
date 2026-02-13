@@ -25,6 +25,42 @@ const SUBS = {
   'MX': 'Interdiscipline/Mixture/Emerging'
 };
 
+// 按投稿月份的微信群二维码映射
+const DEADLINE_QR_MAP: Array<{ months: number[]; qrImage: string; wechatId: string; groupName: string }> = [
+  { months: [1, 2, 3, 4], qrImage: '', wechatId: '', groupName: 'CCF 1-4月投稿群' },
+  { months: [5, 6], qrImage: '/ccf五六月投稿群.jpg', wechatId: 'MAYJUN_GROUP', groupName: 'CCF 五六月投稿群' },
+  { months: [7, 8, 9], qrImage: '/CCF7-9月投稿群.jpg', wechatId: 'JULSEP_GROUP', groupName: 'CCF 7-9月投稿群' },
+  { months: [10, 11, 12], qrImage: '/ccf9-12月投稿群.jpg', wechatId: 'OCTDEC_GROUP', groupName: 'CCF 10-12月投稿群' },
+];
+
+// 根据截止日期月份获取对应的群二维码
+function getDeadlineQR(deadlineMonth: number): { qrImage: string; wechatId: string; groupName: string } {
+  for (const mapping of DEADLINE_QR_MAP) {
+    if (mapping.months.includes(deadlineMonth)) {
+      return { qrImage: mapping.qrImage, wechatId: mapping.wechatId, groupName: mapping.groupName };
+    }
+  }
+  // 默认使用五六月群
+  return { qrImage: '/ccf五六月投稿群.jpg', wechatId: 'MAYJUN_GROUP', groupName: 'CCF 投稿交流群' };
+}
+
+// 按分类的微信群二维码映射（备用，按截止日期优先）
+const CATEGORY_QR_MAP: Record<string, { qrImage: string; wechatId: string; groupName: string }> = {
+  'AI': { qrImage: '/qr-ai.png', wechatId: 'AI_GROUP_ID', groupName: 'CCF AI 人工智能交流群' },
+  'SE': { qrImage: '/qr-se.png', wechatId: 'SE_GROUP_ID', groupName: 'CCF SE 软件工程交流群' },
+  'DB': { qrImage: '/qr-db.png', wechatId: 'DB_GROUP_ID', groupName: 'CCF DB 数据库交流群' },
+  'SC': { qrImage: '/qr-sc.png', wechatId: 'SC_GROUP_ID', groupName: 'CCF SC 网络安全交流群' },
+  'CG': { qrImage: '/qr-cg.png', wechatId: 'CG_GROUP_ID', groupName: 'CCF CG 图形学交流群' },
+  'NW': { qrImage: '/qr-nw.png', wechatId: 'NW_GROUP_ID', groupName: 'CCF NW 网络系统交流群' },
+  'DS': { qrImage: '/qr-ds.png', wechatId: 'DS_GROUP_ID', groupName: 'CCF DS 体系结构交流群' },
+  'HI': { qrImage: '/qr-hi.png', wechatId: 'HI_GROUP_ID', groupName: 'CCF HI 人机交互交流群' },
+  'CT': { qrImage: '/qr-ct.png', wechatId: 'CT_GROUP_ID', groupName: 'CCF CT 理论计算机交流群' },
+  'MX': { qrImage: '/qr-mx.png', wechatId: 'MX_GROUP_ID', groupName: 'CCF MX 交叉学科交流群' },
+};
+
+// 默认二维码（当分类没有专属群时使用）
+const DEFAULT_QR = { qrImage: '/wechat-qr.png', wechatId: 'HQUHXZ', groupName: 'CCF 会议交流群' };
+
 const CATEGORY_COLORS: Record<string, string> = {
   'DS': 'bg-blue-100 text-blue-800',
   'NW': 'bg-green-100 text-green-800',
@@ -595,7 +631,7 @@ export default function ConferenceList({ conferences }: { conferences: Conferenc
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-[1001] overflow-hidden"
+                    className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative z-[1001] overflow-hidden"
                 >
                     <button 
                         onClick={() => setQrModalOpen(false)}
@@ -605,53 +641,82 @@ export default function ConferenceList({ conferences }: { conferences: Conferenc
                     </button>
 
                     <div className="text-center">
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedQRConf.title} {t('groupTitle')}</h3>
-                        <p className="text-sm text-gray-500 mb-6">{t('scanToJoin')}</p>
-                        
-                        <div className="relative w-64 h-64 mx-auto mb-6 bg-gray-100 rounded-xl p-4 flex items-center justify-center border-2 border-dashed border-gray-200">
-                             {/* User provided QR Code */}
-                             <img 
-                                src="/wechat-qr.png" 
-                                alt={`${selectedQRConf.title} QR Code`}
-                                className="w-full h-full object-contain mix-blend-multiply"
-                                onError={(e) => {
-                                     // Fallback if image fails to load - use WeChat ID
-                                     e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=HQUHXZ`;
-                                 }}
-                              />
-                              
-                              {/* Security Badge */}
-                             <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-sm">
-                                <ShieldCheck size={12} />
-                                {t('officialVerified')}
-                             </div>
-                        </div>
+                        {(() => {
+                          // 根据截止日期月份获取对应的二维码
+                          const nextDeadline = getNextDeadline(selectedQRConf);
+                          const deadlineMonth = nextDeadline ? nextDeadline.date.month() + 1 : new Date().getMonth() + 1;
+                          const qrInfo = getDeadlineQR(deadlineMonth);
 
-                        <div className="space-y-3">
-                            <button 
-                                onClick={() => {
-                                    const link = document.createElement('a');
-                                    link.href = '/wechat-qr.png';
-                                    link.download = `CCF_Group_QR.png`;
-                                    link.target = '_blank';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                }}
-                                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                            >
-                                <Download size={18} />
-                                {t('saveQR')}
-                            </button>
-                            
-                            <button 
-                                onClick={() => setQrModalOpen(false)}
-                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                            >
-                                <Check size={18} />
-                                {t('joined')}
-                            </button>
-                        </div>
+                          return (
+                            <>
+                              <h3 className="text-xl font-bold text-gray-900 mb-1">{qrInfo.groupName}</h3>
+                              <p className="text-sm text-gray-500 mb-2">{t('scanToJoin')}</p>
+                              <p className="text-xs text-gray-400 mb-4">
+                                {nextDeadline ? `截止: ${nextDeadline.date.format('YYYY年M月')}` : '时间待定'} · {selectedQRConf.title}
+                              </p>
+
+                              <div className="relative w-72 h-72 mx-auto mb-6 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-200">
+                                   {/* Deadline-based QR Code */}
+                                   {qrInfo.qrImage ? (
+                                     <div className="w-full h-full overflow-hidden flex items-center justify-center">
+                                       <img
+                                          src={qrInfo.qrImage}
+                                          alt={`${qrInfo.groupName} QR Code`}
+                                          className="w-[180%] h-[180%] object-contain"
+                                          style={{ transform: 'scale(1.4) translateY(-8%)' }}
+                                          onError={(e) => {
+                                               // Fallback if image fails to load
+                                               e.currentTarget.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrInfo.wechatId}`;
+                                               e.currentTarget.style.transform = 'scale(1)';
+                                               e.currentTarget.className = 'w-full h-full object-contain';
+                                           }}
+                                        />
+                                     </div>
+                                   ) : (
+                                     <div className="flex flex-col items-center justify-center text-gray-400">
+                                       <Users size={48} className="mb-2 opacity-50" />
+                                       <p className="text-sm">暂无二维码</p>
+                                       <p className="text-xs mt-1">请联系管理员获取加群方式</p>
+                                     </div>
+                                   )}
+
+                                    {/* Security Badge */}
+                                   <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-sm">
+                                      <ShieldCheck size={12} />
+                                      {t('officialVerified')}
+                                   </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                  {qrInfo.qrImage && (
+                                    <button
+                                        onClick={() => {
+                                            const link = document.createElement('a');
+                                            link.href = qrInfo.qrImage;
+                                            link.download = `${qrInfo.groupName}.jpg`;
+                                            link.target = '_blank';
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                        }}
+                                        className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <Download size={18} />
+                                        {t('saveQR')}
+                                    </button>
+                                  )}
+
+                                  <button
+                                      onClick={() => setQrModalOpen(false)}
+                                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                  >
+                                      <Check size={18} />
+                                      {t('joined')}
+                                  </button>
+                              </div>
+                            </>
+                          );
+                        })()}
                         
                         <p className="text-xs text-gray-400 mt-4">
                             {t('qrDisclaimer')}

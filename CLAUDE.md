@@ -15,9 +15,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Create `.env.local` with:
 ```env
 DEEPSEEK_API_KEY=sk-your-api-key-here
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 The DeepSeek API is used for the AI chat assistant. If not provided, the chat API falls back to a rule-based keyword matching system.
+
+## Database (Supabase)
+
+Conference data is stored in Supabase PostgreSQL with the following tables:
+
+- `conferences` - Main conference metadata (id, title, description, sub)
+- `ranks` - CCF/CORE/THCPL rankings (one-to-one with conferences)
+- `conference_instances` - Specific year/edition data (many-to-one with conferences)
+- `timeline_items` - Deadline information (many-to-one with instances)
+
+**Migration:** Run `npm run migrate-db` to migrate data from `public/conferences.json` to Supabase.
+
+**Data Access:** Use `getConferencesFromDB()` in `lib/supabase.ts` which fetches and transforms data to match the original `Conference` type.
+
+## QR Code Configuration
+
+WeChat group QR codes are configured based on conference deadline month in `ConferenceList.tsx`:
+
+```typescript
+const DEADLINE_QR_MAP = [
+  { months: [1, 2, 3, 4], qrImage: '', groupName: 'CCF 1-4月投稿群' },  // No QR yet
+  { months: [5, 6], qrImage: '/ccf五六月投稿群.jpg', groupName: 'CCF 五六月投稿群' },
+  { months: [7, 8, 9], qrImage: '/CCF7-9月投稿群.jpg', groupName: 'CCF 7-9月投稿群' },
+  { months: [10, 11, 12], qrImage: '/ccf9-12月投稿群.jpg', groupName: 'CCF 10-12月投稿群' },
+];
+```
+
+**QR Images Location:** Place QR code images in `public/` directory. Images are phone screenshots, displayed at 288x288px in modal.
+
+**Adding New QR Codes:**
+1. Add image file to `public/` directory
+2. Update `DEADLINE_QR_MAP` with correct months mapping
+3. If `qrImage` is empty, modal shows "暂无二维码" placeholder
 
 ## Architecture Overview
 
