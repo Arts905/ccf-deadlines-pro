@@ -25,24 +25,34 @@ const SUBS = {
   'MX': 'Interdiscipline/Mixture/Emerging'
 };
 
-// 按投稿月份的微信群二维码映射
-const DEADLINE_QR_MAP: Array<{ months: number[]; qrImage: string; wechatId: string; groupName: string }> = [
-  { months: [1, 2, 3, 4], qrImage: '', wechatId: '', groupName: 'CCF 1-4月投稿群' },
-  { months: [5, 6], qrImage: '/ccf五六月投稿群.jpg', wechatId: 'MAYJUN_GROUP', groupName: 'CCF 五六月投稿群' },
-  { months: [7, 8, 9], qrImage: '/CCF7-9月投稿群.jpg', wechatId: 'JULSEP_GROUP', groupName: 'CCF 7-9月投稿群' },
-  { months: [10, 11, 12], qrImage: '/ccf9-12月投稿群.jpg', wechatId: 'OCTDEC_GROUP', groupName: 'CCF 10-12月投稿群' },
-];
-
 // 根据截止日期月份获取对应的群二维码
-function getDeadlineQR(deadlineMonth: number): { qrImage: string; wechatId: string; groupName: string } {
-  for (const mapping of DEADLINE_QR_MAP) {
-    if (mapping.months.includes(deadlineMonth)) {
-      return { qrImage: mapping.qrImage, wechatId: mapping.wechatId, groupName: mapping.groupName };
+const getDeadlineQR = (deadlineMonth: number) => {
+    if (deadlineMonth >= 1 && deadlineMonth <= 4) {
+      return { 
+        qrImage: '/ccf五六月投稿群.jpg', // 修正：1-4月用五六月群？根据用户反馈修正逻辑
+        wechatId: 'CCF_1_4', 
+        groupName: 'CCF 1-4月投稿群' 
+      };
+    } else if (deadlineMonth >= 5 && deadlineMonth <= 6) {
+      return { 
+        qrImage: '/ccf五六月投稿群.jpg', 
+        wechatId: 'CCF_5_6', 
+        groupName: 'CCF 5-6月投稿群' 
+      };
+    } else if (deadlineMonth >= 7 && deadlineMonth <= 9) {
+      return { 
+        qrImage: '/CCF7-9月投稿群.jpg', 
+        wechatId: 'CCF_7_9', 
+        groupName: 'CCF 7-9月投稿群' 
+      };
+    } else { // 10-12
+      return { 
+        qrImage: '/ccf9-12月投稿群.jpg', 
+        wechatId: 'CCF_9_12', 
+        groupName: 'CCF 9-12月投稿群' 
+      };
     }
-  }
-  // 默认使用五六月群
-  return { qrImage: '/ccf五六月投稿群.jpg', wechatId: 'MAYJUN_GROUP', groupName: 'CCF 投稿交流群' };
-}
+  };
 
 // 按分类的微信群二维码映射（备用，按截止日期优先）
 const CATEGORY_QR_MAP: Record<string, { qrImage: string; wechatId: string; groupName: string }> = {
