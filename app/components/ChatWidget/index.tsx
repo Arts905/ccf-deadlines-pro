@@ -89,6 +89,16 @@ const MarkdownComponents = {
     <strong className="font-bold text-gray-900">{children}</strong>
   ),
   hr: () => <hr className="my-4 border-gray-200" />,
+  details: ({ children }: { children: React.ReactNode }) => (
+    <details className="mt-2 text-[10px] text-gray-400 cursor-pointer">
+      {children}
+    </details>
+  ),
+  summary: ({ children }: { children: React.ReactNode }) => (
+    <summary className="text-gray-400 hover:text-gray-600 transition-colors">
+      {children}
+    </summary>
+  ),
 };
 
 // ============================================
@@ -234,6 +244,82 @@ function useTypewriter(text: string, speed: number = 20, enabled: boolean = true
   }, [text, speed, enabled]);
 
   return { displayedText, isTyping };
+}
+
+// ============================================
+// UI/UX 优化: 加载进度组件
+// ============================================
+function LoadingProgress() {
+  const steps = [
+    { text: '理解需求中...', icon: '🤔' },
+    { text: '搜索会议库...', icon: '🔍' },
+    { text: '计算匹配度...', icon: '📊' },
+    { text: '生成推荐...', icon: '✨' },
+  ];
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep(prev => (prev + 1) % steps.length);
+    }, 800);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-2">
+      <motion.span
+        key={currentStep}
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="text-base"
+      >
+        {steps[currentStep].icon}
+      </motion.span>
+      <motion.span
+        key={`text-${currentStep}`}
+        initial={{ opacity: 0, x: 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="text-xs text-gray-600"
+      >
+        {steps[currentStep].text}
+      </motion.span>
+    </div>
+  );
+}
+
+// ============================================
+// UI/UX 优化: 错误提示组件 (用户友好 + 开发者可见)
+// ============================================
+interface ErrorInfo {
+  type: 'network' | 'api' | 'unknown';
+  message: string;
+  detail?: string; // 开发者信息
+}
+
+function getErrorInfo(error: unknown): ErrorInfo {
+  if (error instanceof Error) {
+    // 网络错误
+    if (error.name === 'AbortError') {
+      return { type: 'unknown', message: '请求已取消' };
+    }
+    if (error.message.includes('fetch') || error.message.includes('Network')) {
+      return {
+        type: 'network',
+        message: '网络连接失败，请检查网络后重试',
+        detail: error.message
+      };
+    }
+    // API 错误
+    return {
+      type: 'api',
+      message: '服务暂时繁忙，请稍后重试',
+      detail: error.message
+    };
+  }
+  return {
+    type: 'unknown',
+    message: '发生未知错误，请刷新页面重试'
+  };
 }
 
 // ============================================
@@ -530,10 +616,16 @@ export default function ChatWidget() {
       if (!isOpen) setHasNewMessage(true);
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
+
+      const errorInfo = getErrorInfo(error);
+      const errorContent = errorInfo.detail
+        ? `❌ **${errorInfo.message}**\n\n<details><summary>技术详情</summary>\n\`${errorInfo.detail}\`\n</details>`
+        : `❌ **${errorInfo.message}**`;
+
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        content: '抱歉，发生了错误。请稍后重试。',
+        content: errorContent,
         timestamp: Date.now()
       }]);
     } finally {
@@ -740,23 +832,14 @@ export default function ChatWidget() {
                 </motion.div>
               ))}
 
-              {/* Loading */}
+              {/* Loading - 带进度提示 */}
               {isLoading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-sm">
                     <Bot size={16} />
                   </div>
-                  <div className="bg-white p-4 rounded-2xl rounded-tl-md border border-gray-100 shadow-sm">
-                    <div className="flex gap-1.5">
-                      {[0, 1, 2].map((i) => (
-                        <motion.span
-                          key={i}
-                          className="w-2 h-2 bg-blue-400 rounded-full"
-                          animate={{ y: [0, -6, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                        />
-                      ))}
-                    </div>
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-md border border-gray-100 shadow-sm min-w-[140px]">
+                    <LoadingProgress />
                   </div>
                 </motion.div>
               )}
