@@ -126,6 +126,9 @@ function SearchProcessCard({ process, isExpanded = false }: { process: SearchPro
   const [showDetails, setShowDetails] = useState(isExpanded);
   const prefersReducedMotion = usePrefersReducedMotion();
 
+  // Debug: 确认组件渲染
+  console.log('[SearchProcessCard] Rendering:', process.understanding, process.searchMethod, process.matchCount);
+
   return (
     <motion.div
       initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
@@ -631,6 +634,13 @@ export default function ChatWidget() {
         relatedConferences: data.conferences,
         searchProcess: data.searchProcess
       }]);
+
+      // Debug: 确认 searchProcess 数据
+      if (data.searchProcess) {
+        console.log('[ChatWidget] searchProcess received:', data.searchProcess.searchMethod, data.searchProcess.matchCount, 'matches');
+      } else {
+        console.log('[ChatWidget] No searchProcess in response');
+      }
 
       if (!isOpen) setHasNewMessage(true);
     } catch (error) {
