@@ -8,6 +8,7 @@ export interface SearchProcess {
   totalSearched: number;        // 511
   filtersApplied: string[];     // ["CCF A类", "AI领域", "2个月内截稿"]
   matchCount: number;           // 3
+  searchMethod: 'semantic' | 'keyword'; // 语义搜索 or 关键词匹配
   topMatches: Array<{
     title: string;
     score: number;

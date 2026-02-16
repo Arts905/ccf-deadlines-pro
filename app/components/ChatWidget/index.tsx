@@ -145,23 +145,42 @@ function SearchProcessCard({ process, isExpanded = false }: { process: SearchPro
       </div>
 
       {/* 统计数据 */}
-      <div className="flex items-center gap-3 mt-3 ml-10.5">
+      <div className="flex items-center gap-2 mt-3 ml-[42px] flex-wrap">
         <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-gray-500">
           <Filter size={10} />
           <span>搜索了 {process.totalSearched} 个会议</span>
         </div>
         <div className="w-1 h-1 rounded-full bg-gray-300" />
-        <div className="text-[10px] md:text-xs font-medium text-blue-600">
+        <div className={cn(
+          "text-[10px] md:text-xs font-medium",
+          process.matchCount > 0 ? "text-blue-600" : "text-amber-600"
+        )}>
           找到 {process.matchCount} 个匹配
         </div>
+        <div className="w-1 h-1 rounded-full bg-gray-300" />
+        <div className={cn(
+          "text-[10px] md:text-xs px-1.5 py-0.5 rounded-full",
+          process.searchMethod === 'semantic'
+            ? "bg-purple-100 text-purple-600"
+            : "bg-gray-100 text-gray-500"
+        )}>
+          {process.searchMethod === 'semantic' ? '🧠 语义搜索' : '📝 关键词匹配'}
+        </div>
       </div>
+
+      {/* 无匹配时的提示 */}
+      {process.matchCount === 0 && (
+        <div className="mt-3 ml-[42px] text-[10px] md:text-xs text-gray-500 bg-amber-50 px-2 py-1.5 rounded-lg inline-block">
+          💡 建议尝试更具体的关键词，如"计算机视觉"、"自然语言处理"等
+        </div>
+      )}
 
       {/* 展开/收起详情 */}
       {process.topMatches.length > 0 && (
         <>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="mt-2.5 ml-10.5 text-[10px] md:text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            className="mt-2.5 ml-[42px] text-[10px] md:text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
           >
             {showDetails ? '收起详情' : '查看匹配详情'}
             <motion.span
@@ -181,7 +200,7 @@ function SearchProcessCard({ process, isExpanded = false }: { process: SearchPro
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 ml-10.5 space-y-2">
+                <div className="mt-3 ml-[42px] space-y-2">
                   {process.topMatches.map((match, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-xs">
                       <div className={cn(

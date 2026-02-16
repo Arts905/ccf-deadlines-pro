@@ -191,6 +191,7 @@ function extractUserIntent(query: string): UserIntent {
   // 3. 提取研究方向关键词
   const researchKeywords = [
     // AI 相关
+    'AI', '人工智能', 'artificial intelligence',
     '深度学习', '机器学习', '强化学习', '多智能体', '自然语言处理', 'NLP', '计算机视觉', 'CV',
     '图像识别', '目标检测', '语义分割', '知识图谱', '大模型', 'LLM', '生成模型', 'AIGC',
     'deep learning', 'machine learning', 'reinforcement learning', 'multi-agent',
@@ -611,7 +612,8 @@ function generateSearchProcess(
     conf: Conference;
     score: MatchScore;
     deadline: { date: dayjs.Dayjs; info: any; comment?: string } | null;
-  }>
+  }>,
+  usedSemanticSearch: boolean = false
 ): SearchProcess {
   // 1. 理解用户需求
   let understanding = "您正在寻找";
@@ -677,6 +679,7 @@ function generateSearchProcess(
     totalSearched: allConferencesCount,
     filtersApplied: filtersApplied.length > 0 ? filtersApplied : ["全部会议"],
     matchCount: scoredResults.length,
+    searchMethod: usedSemanticSearch ? 'semantic' : 'keyword',
     topMatches
   };
 }
@@ -686,6 +689,7 @@ interface SearchProcess {
   totalSearched: number;
   filtersApplied: string[];
   matchCount: number;
+  searchMethod: 'semantic' | 'keyword';
   topMatches: Array<{
     title: string;
     score: number;
@@ -735,13 +739,17 @@ export async function POST(req: Request) {
     // Try calling DeepSeek API
     const aiResponse = await callDeepSeek(message, contextText, topScoredResults, intent);
 
+    // 检查是否使用了语义搜索（需要在 analyzeQuery 中传递）
+    const usedSemanticSearch = process.env.JINA_API_KEY ? true : false;
+
     // 生成用户友好的检索过程
     const searchProcess = generateSearchProcess(
       message,
       intent,
       conditions,
       allConferences.length,
-      topScoredResults
+      topScoredResults,
+      usedSemanticSearch
     );
 
     if (aiResponse) {
