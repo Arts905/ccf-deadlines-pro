@@ -157,31 +157,29 @@ function Countdown({ targetDate }: { targetDate: dayjs.Dayjs }) {
 
 export default function ConferenceList({ conferences }: { conferences: Conference[] }) {
   const { t, language } = useLanguage();
-  console.log('Current language:', language);
   const [search, setSearch] = useState('');
   const [selectedSub, setSelectedSub] = useState<string>('All');
   const [selectedRank, setSelectedRank] = useState<string>('All');
   const [showPast, setShowPast] = useState(true);
-  
-  // Translation Cache
-  const [translations, setTranslations] = useState<Record<string, string>>({});
+
+  // Translation Cache - 优化: 从 localStorage 初始化
+  const [translations, setTranslations] = useState<Record<string, string>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const cached = localStorage.getItem('translation_cache');
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => {
     const translateTexts = async () => {
-      if (language === 'en') return; // No need to translate if English
+      if (language === 'en') return;
 
       const textsToTranslate = new Set<string>();
-      
-      // Collect all texts that need translation
+
       conferences.forEach(conf => {
-        // Find next deadline manually if not pre-calculated yet (though it should be)
-        // But since we are inside useEffect, we should probably use conferencesWithDeadline if we want to be safe,
-        // OR re-calculate it here.
-        // Actually, conferencesWithDeadline is a dependency if we use it.
-        // Let's iterate over conferences and check its structure. 
-        // The issue is that `conf` from `conferences` prop is type `Conference` which has `confs` array.
-        // The `nextDeadline` property is added in `conferencesWithDeadline`.
-        // So we should iterate over `conferencesWithDeadline` or calculate it on the fly.
         
         // Let's use the logic to find next deadline:
         const nextDl = getNextDeadline(conf);
@@ -215,12 +213,18 @@ export default function ConferenceList({ conferences }: { conferences: Conferenc
             if (data.translatedText) {
                 newTranslations[`${language}_${text}`] = data.translatedText;
             }
-        } catch (err) {
-            console.error('Failed to translate', text, err);
+        } catch {
+            // 静默失败，不影响其他翻译
         }
       }));
 
       setTranslations(newTranslations);
+      // 优化: 持久化到 localStorage
+      try {
+        localStorage.setItem('translation_cache', JSON.stringify(newTranslations));
+      } catch {
+        // localStorage 可能已满或不可用
+      }
     };
 
     translateTexts();

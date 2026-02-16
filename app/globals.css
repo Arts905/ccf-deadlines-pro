@@ -1,1 +1,75 @@
 @import "tailwindcss";
+
+/* ============================================
+   Responsive Design - Fluid Typography & Mobile
+   ============================================ */
+
+/* Safe area support for iOS devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Fluid type scale for chat messages */
+:root {
+  --chat-text-xs: clamp(0.625rem, 0.575rem + 0.25vw, 0.75rem);
+  --chat-text-sm: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --chat-text-base: clamp(0.875rem, 0.825rem + 0.25vw, 1rem);
+}
+
+/* Prevent iOS zoom on input focus (font-size >= 16px) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="search"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Smooth scrolling for chat messages */
+.chat-messages {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Hide scrollbar but keep functionality */
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .touch-feedback:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

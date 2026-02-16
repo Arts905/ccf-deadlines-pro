@@ -20,6 +20,13 @@ export interface Rank {
   thcpl?: string;
 }
 
+export interface AcceptanceRate {
+  year: number;
+  rate: number;
+  accepted?: number;
+  total?: number;
+}
+
 export interface Conference {
   title: string;
   description: string;
@@ -29,4 +36,7 @@ export interface Conference {
   dblp: string;
   confs: ConferenceInstance[];
   sourceFile: string;
+  // 新增字段
+  acceptanceRate?: AcceptanceRate[];
+  keywords?: string[];
 }

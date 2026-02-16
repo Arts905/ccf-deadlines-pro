@@ -5,7 +5,9 @@
     "start": "next start",
     "lint": "next lint",
     "generate-data": "node scripts/generate-data.js",
-    "migrate-db": "node scripts/migrate-to-supabase.js"
+    "migrate-db": "node scripts/migrate-to-supabase.js",
+    "enrich-data": "node scripts/enrich-conference-data.js",
+    "generate-embeddings": "node scripts/generate-embeddings.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
@@ -21,6 +23,8 @@
     "next": "^16.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS conferences (
   title VARCHAR(500) NOT NULL,
   description TEXT,
   sub VARCHAR(10), -- DS, NW, SC, SE, DB, CT, CG, AI, HI, MX
+  acceptance_rate JSONB, -- [{year, rate, accepted, total}]
+  keywords TEXT[], -- 研究主题关键词
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
