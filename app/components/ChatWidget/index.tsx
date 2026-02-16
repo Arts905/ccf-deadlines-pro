@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Message, ChatResponse } from './types';
-import { Send, Bot, User, X, MessageCircle, Copy, Check, ExternalLink, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Target, Clock, BarChart3 } from 'lucide-react';
+import { Message, ChatResponse, SearchProcess } from './types';
+import { Send, Bot, User, X, MessageCircle, Copy, Check, ExternalLink, Sparkles, RefreshCw, ThumbsUp, ThumbsDown, Target, Clock, BarChart3, Search, Filter, Sparkle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/app/contexts/LanguageContext';
@@ -92,6 +92,114 @@ const MarkdownComponents = {
 };
 
 // ============================================
+// UI/UX 优化: 检测 prefers-reduced-motion (提前定义)
+// ============================================
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+// ============================================
+// UI/UX 优化: 检索过程卡片 (用户视角)
+// ============================================
+function SearchProcessCard({ process, isExpanded = false }: { process: SearchProcess; isExpanded?: boolean }) {
+  const [showDetails, setShowDetails] = useState(isExpanded);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  return (
+    <motion.div
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-3 md:p-4 mb-3 border border-blue-100/50"
+    >
+      {/* 头部：理解用户需求 */}
+      <div className="flex items-start gap-2.5">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <Search size={14} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs md:text-sm text-gray-700 leading-relaxed">
+            {process.understanding}
+          </p>
+        </div>
+      </div>
+
+      {/* 统计数据 */}
+      <div className="flex items-center gap-3 mt-3 ml-10.5">
+        <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-gray-500">
+          <Filter size={10} />
+          <span>搜索了 {process.totalSearched} 个会议</span>
+        </div>
+        <div className="w-1 h-1 rounded-full bg-gray-300" />
+        <div className="text-[10px] md:text-xs font-medium text-blue-600">
+          找到 {process.matchCount} 个匹配
+        </div>
+      </div>
+
+      {/* 展开/收起详情 */}
+      {process.topMatches.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="mt-2.5 ml-10.5 text-[10px] md:text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+          >
+            {showDetails ? '收起详情' : '查看匹配详情'}
+            <motion.span
+              animate={{ rotate: showDetails ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              ▼
+            </motion.span>
+          </button>
+
+          <AnimatePresence>
+            {showDetails && (
+              <motion.div
+                initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 ml-10.5 space-y-2">
+                  {process.topMatches.map((match, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0",
+                        idx === 0 ? "bg-amber-100 text-amber-700" :
+                        idx === 1 ? "bg-gray-100 text-gray-600" :
+                        "bg-orange-50 text-orange-600"
+                      )}>
+                        {idx + 1}
+                      </div>
+                      <span className="font-medium text-gray-800 truncate">{match.title}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
+                        {match.score}%
+                      </span>
+                      <span className="text-[10px] text-gray-500 truncate">{match.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
+// ============================================
 // UI/UX 优化: 打字机效果 Hook (支持 prefers-reduced-motion)
 // ============================================
 function useTypewriter(text: string, speed: number = 20, enabled: boolean = true) {
@@ -126,24 +234,6 @@ function useTypewriter(text: string, speed: number = 20, enabled: boolean = true
   }, [text, speed, enabled]);
 
   return { displayedText, isTyping };
-}
-
-// ============================================
-// UI/UX 优化: 检测 prefers-reduced-motion
-// ============================================
-function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  return prefersReducedMotion;
 }
 
 // ============================================
@@ -433,7 +523,8 @@ export default function ChatWidget() {
         role: 'assistant',
         content: data.message,
         timestamp: Date.now(),
-        relatedConferences: data.conferences
+        relatedConferences: data.conferences,
+        searchProcess: data.searchProcess
       }]);
 
       if (!isOpen) setHasNewMessage(true);
@@ -614,6 +705,11 @@ export default function ChatWidget() {
 
                   {/* Bubble - 移动端优化 */}
                   <div className="flex flex-col gap-1.5 md:gap-2 max-w-[calc(100%-48px)] md:max-w-[calc(100%-52px)]">
+                    {/* 检索过程卡片 - 仅在有数据时显示 */}
+                    {msg.role === 'assistant' && msg.searchProcess && (
+                      <SearchProcessCard process={msg.searchProcess} />
+                    )}
+
                     <div className={cn(
                       "p-3 md:p-3.5 rounded-2xl text-sm leading-relaxed group relative",
                       msg.role === 'user'

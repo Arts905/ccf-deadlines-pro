@@ -601,6 +601,98 @@ ${taskSuggestions}
   }
 }
 
+// 生成用户友好的检索过程描述
+function generateSearchProcess(
+  query: string,
+  intent: UserIntent,
+  conditions: string[],
+  allConferencesCount: number,
+  scoredResults: Array<{
+    conf: Conference;
+    score: MatchScore;
+    deadline: { date: dayjs.Dayjs; info: any; comment?: string } | null;
+  }>
+): SearchProcess {
+  // 1. 理解用户需求
+  let understanding = "您正在寻找";
+  const understandingParts: string[] = [];
+
+  if (intent.keywords.length > 0) {
+    understandingParts.push(`"${intent.keywords.slice(0, 3).join('、')}"相关研究`);
+  }
+  if (intent.rankPreference) {
+    understandingParts.push(`CCF ${intent.rankPreference}类会议`);
+  } else {
+    understandingParts.push("任意等级会议");
+  }
+  if (intent.estimatedDays) {
+    if (intent.estimatedDays <= 30) {
+      understandingParts.push(`${intent.estimatedDays}天内截稿`);
+    } else if (intent.estimatedDays <= 90) {
+      understandingParts.push(`${Math.round(intent.estimatedDays / 30)}个月内截稿`);
+    } else {
+      understandingParts.push("时间较充裕");
+    }
+  }
+
+  understanding += understandingParts.join("的");
+
+  // 2. 筛选条件
+  const filtersApplied: string[] = [];
+  if (intent.rankPreference) {
+    filtersApplied.push(`仅CCF ${intent.rankPreference}类`);
+  }
+  if (intent.keywords.length > 0) {
+    filtersApplied.push(`匹配"${intent.keywords[0]}"等关键词`);
+  }
+  if (intent.estimatedDays && intent.estimatedDays <= 90) {
+    filtersApplied.push(`截稿时间在${Math.round(intent.estimatedDays / 30)}个月内`);
+  }
+  filtersApplied.push("排除已截稿会议");
+
+  // 3. 顶级匹配
+  const topMatches = scoredResults.slice(0, 3).map(({ conf, score, deadline }) => {
+    const reasons: string[] = [];
+    if (score.contentMatch >= 70) {
+      reasons.push(`内容匹配${score.contentMatch}%`);
+    }
+    if (score.timeFeasibility >= 80) {
+      reasons.push("时间充裕");
+    } else if (score.timeFeasibility >= 50) {
+      reasons.push("时间合适");
+    }
+    if (score.difficultyScore >= 60) {
+      reasons.push("难度适中");
+    }
+
+    return {
+      title: conf.title,
+      score: score.overallScore,
+      reason: reasons.length > 0 ? reasons.join("，") : "综合推荐"
+    };
+  });
+
+  return {
+    understanding,
+    totalSearched: allConferencesCount,
+    filtersApplied: filtersApplied.length > 0 ? filtersApplied : ["全部会议"],
+    matchCount: scoredResults.length,
+    topMatches
+  };
+}
+
+interface SearchProcess {
+  understanding: string;
+  totalSearched: number;
+  filtersApplied: string[];
+  matchCount: number;
+  topMatches: Array<{
+    title: string;
+    score: number;
+    reason: string;
+  }>;
+}
+
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
@@ -643,6 +735,15 @@ export async function POST(req: Request) {
     // Try calling DeepSeek API
     const aiResponse = await callDeepSeek(message, contextText, topScoredResults, intent);
 
+    // 生成用户友好的检索过程
+    const searchProcess = generateSearchProcess(
+      message,
+      intent,
+      conditions,
+      allConferences.length,
+      topScoredResults
+    );
+
     if (aiResponse) {
       return NextResponse.json({
         message: aiResponse,
@@ -650,7 +751,8 @@ export async function POST(req: Request) {
         scores: topScoredResults.slice(0, 5).map(r => ({
           title: r.conf.title,
           ...r.score
-        }))
+        })),
+        searchProcess
       });
     }
 
@@ -683,7 +785,8 @@ export async function POST(req: Request) {
       scores: topScoredResults.slice(0, 5).map(r => ({
         title: r.conf.title,
         ...r.score
-      }))
+      })),
+      searchProcess
     });
 
   } catch (error) {
